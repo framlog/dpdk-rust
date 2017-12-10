@@ -1,0 +1,9 @@
+[package]
+name = "dpdk-rust"
+version = "0.1.0"
+authors = ["framlog <framlog@gmail.com>"]
+
+[build-dependencies]
+bindgen = "0.32.0"
+
+[dependencies]
