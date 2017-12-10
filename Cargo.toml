@@ -1,5 +1,6 @@
 [package]
 name = "dpdk-rust"
+build = "build.rs"
 version = "0.1.0"
 authors = ["framlog <framlog@gmail.com>"]
 

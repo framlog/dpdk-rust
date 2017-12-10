@@ -1,6 +1,7 @@
 extern crate bindgen;
 
 use std::env;
+use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::fs::{read_dir, ReadDir, File, DirEntry};
 use std::io::prelude::*;
@@ -62,7 +63,7 @@ fn main() {
         }
     }
 
-    // set linked library properly
+    // Set linked library properly.
     println!("cargo:rustc-link-search={}", lib_path);
     foreach_in_dir(&lib_path, |ent| {
         if let Some(ext) = ent.path().extension() {
@@ -80,6 +81,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         .header("./src/wrapper.h")
         .blacklist_type("max_align_t")
+        .rust_target(bindgen::RustTarget::Nightly)
         .clang_args(vec![format!("-I{}", include_path), "-msse4.2".to_string()])
         .generate()
         .expect("Unable to generate bindings");
@@ -89,4 +91,9 @@ fn main() {
     bindings
         .write_to_file(out_path.join("dpdk.rs"))
         .expect("Couldn't write bindings!");
+
+    // Set thread_local properly. (rust-bindgen 0.32 can't generate tls variables correctly)
+    Command::new("sed").args(&["-i", "/mut  per_lcore_*/i #[thread_local]"])
+        .arg(&format!("{}/dpdk.rs", env::var("OUT_DIR").unwrap()))
+        .status().unwrap();
 }
