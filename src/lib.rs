@@ -45,6 +45,45 @@ pub fn rte_lcore_foreach_slave<F>(mut f: F) where F: FnMut(u32) {
     }
 }
 
+macro_rules! rte_func_ptr_or_err_ret {
+    // `func_ptr` should be a Option
+    ($func_ptr: expr, $retval: expr) => {
+        if $func_ptr.is_none() {
+            eprintln!("Function not supported");
+            return $retval;
+        }
+    }
+}
+
+macro_rules! rte_eth_valid_portid_or_err_ret {
+    ($port_id: expr, $retval: expr) => {
+        if 0 == rte_eth_dev_is_valid_port($port_id) {
+            eprintln!("Invalid port id={}", $port_id);
+            return $retval;
+        }
+    }
+}
+
+#[inline]
+pub unsafe fn rte_eth_tx_burst(port_id: u8, queue_id: u16, tx_pkts: *mut *mut rte_mbuf, nb_pkts: u16) -> u16 {
+    let dev = rte_eth_devices[port_id as usize];
+    let dev_data = &mut*(dev.data);
+
+    #[cfg(debug_assertions)] {
+        rte_eth_valid_portid_or_err_ret!(port_id, 0);
+        rte_func_ptr_or_err_ret!(dev.tx_pkt_burst, 0);
+
+        if queue_id >= dev_data.nb_tx_queues {
+            eprintln!("Invalid TX queue_id={}", queue_id);
+            return 0;
+        }
+    }
+
+    //TODO: rxtx callback?
+
+    return (dev.tx_pkt_burst.unwrap())(std::ptr::read(dev_data.tx_queues.offset(queue_id as isize)), tx_pkts, nb_pkts);
+}
+
 #[cfg(test)]
 mod tests {
     use std::os::raw::{c_int, c_char, c_void};
