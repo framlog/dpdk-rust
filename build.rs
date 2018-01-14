@@ -77,6 +77,7 @@ fn main() {
             }
         }
     });
+    println!("cargo:rustc-link-lib=numa");
 
     let bindings = bindgen::Builder::default()
         .header("./src/wrapper.h")
